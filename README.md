@@ -11,6 +11,7 @@ on change (significant speedup)
 
 * pandoc 2+
 * jdk1.8+
+* make
 
 
 ## installation
