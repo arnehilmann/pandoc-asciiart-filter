@@ -1,3 +1,5 @@
+os.execute("mkdir rendered")
+
 function CodeBlock(elem)
     local renderer = {
         ditaa = function(text)
@@ -19,11 +21,11 @@ function CodeBlock(elem)
 
             local f=io.open(fname,"rb")
             if f~=nil then
-                io.stderr:write("cached " .. format .. " rendering found!\n")
+                io.stderr:write("cached " .. format .. " rendering found in " .. fname .. "\n")
                 data = f:read("*all")
                 f:close()
             else
-                io.stderr:write("rendering " .. format .. "!\n")
+                io.stderr:write("rendering " .. format .. " to " .. fname .. "\n")
                 data = render_fun(elem.text)
                 local f=io.open(fname, "wb")
                 f:write(data)

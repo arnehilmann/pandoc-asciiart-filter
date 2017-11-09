@@ -1,5 +1,4 @@
 README.pdf:	README.md lib/
-	mkdir -p rendered
 	pandoc \
 		$< \
 		--lua-filter render-asciiart-filter.lua \
@@ -20,7 +19,7 @@ lib/plantuml.jar:
 
 
 clean:
-	rm -rf index.html *.pdf rendered
+	rm -rf rendered
 
 
 mrproper:	clean
@@ -28,4 +27,4 @@ mrproper:	clean
 	git clean -fxd
 
 
-.PHONY: all clean mrproper start-chrome
+.PHONY: clean mrproper
