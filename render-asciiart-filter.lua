@@ -3,7 +3,7 @@ os.execute("mkdir rendered")
 function CodeBlock(elem)
     local renderer = {
         ditaa = function(text)
-            return pandoc.pipe("java", {"-jar", "lib/ditaa.jar", "-", "-"}, text)
+            return pandoc.pipe("java", {"-jar", "lib/ditaa.jar", "--transparent", "--scale", "2.5", "-", "-"}, text)
         end,
         plantuml = function(text)
             return pandoc.pipe("java", {"-jar", "lib/plantuml.jar", "-tpng", "-p", "-Sbackgroundcolor=transparent"}, text)
