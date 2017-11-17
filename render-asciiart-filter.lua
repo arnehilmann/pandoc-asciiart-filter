@@ -35,7 +35,7 @@ local renderer = {
         if attrs[1] then
             attrs = attrs[1][2]
         else
-            attrs = config.ditaa.defaultargs or ""
+            attrs = config.plantuml.defaultargs or ""
         end
         params = {"-jar", LIBDIR .. "/plantuml.jar", "-tpng", "-p", "-Sbackgroundcolor=transparent"}
         for w in attrs:gmatch("%S+") do
@@ -44,24 +44,46 @@ local renderer = {
         return pandoc.pipe("java", params, text)
     end,
     dot = function(text, attrs)
-        return pandoc.pipe("dot", {"-Tpng"}, text)
+        if attrs[1] then
+            attrs = attrs[1][2]
+        else
+            attrs = config.dot.defaultargs or ""
+        end
+        params = {"-Tpng"}
+        for w in attrs:gmatch("%S+") do
+            table.insert(params, w)
+        end
+        return pandoc.pipe("dot", params, text)
+    end,
+    qr = function(text, attrs)
+        if attrs[1] then
+            attrs = attrs[1][2]
+        else
+            attrs = config.qr.defaultargs or ""
+        end
+        params = {"-o", "-"}
+        for w in attrs:gmatch("%S+") do
+            table.insert(params, w)
+        end
+        return pandoc.pipe("qrencode", params, text)
     end,
 }
 
-local images = {}
+images = {}
 
 function Pandoc(blocks)
     local pfile = io.popen('ls -a rendered/*.png')
-    for filename in pfile:lines() do
-        if not images[filename] then
-            io.stderr:write("removing obsolete '" .. filename .. "'\n")
-            os.remove(filename)
+    for fname in pfile:lines() do
+        if not images[fname] then
+            io.stderr:write("removing obsolete '" .. fname .. "'\n")
+            os.remove(fname)
         end
     end
     pfile:close()
 
     return nil
 end
+
 
 function CodeBlock(elem, attr)
     for format, render_fun in pairs(renderer) do
