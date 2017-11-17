@@ -1,17 +1,45 @@
-os.execute("mkdir rendered")
+CONFIGFILE=os.getenv("ASCIIART_CONFIG") or "render-asciiart-filter.config"
+local config = {}
+local configfile,err = loadfile(CONFIGFILE, "t", config)
+if configfile then
+   configfile() -- load the config
+else
+   io.stderr:write(err)
+end
 
-function CodeBlock(elem)
-    local renderer = {
-        ditaa = function(text)
-            return pandoc.pipe("java", {"-jar", "lib/ditaa.jar", "--transparent", "--scale", "2.5", "-", "-"}, text)
-        end,
-        plantuml = function(text)
-            return pandoc.pipe("java", {"-jar", "lib/plantuml.jar", "-tpng", "-p", "-Sbackgroundcolor=transparent"}, text)
-        end,
-        dot = function(text)
-            return pandoc.pipe("dot", {"-Tpng"}, text)
-        end,
-    }
+local outputdir=io.open("rendered","r")
+if outputdir~=nil then
+    io.close(outputdir)
+else
+    os.execute("mkdir rendered")
+end
+
+LIBDIR=os.getenv("ASCIIART_LIBDIR") or "lib"
+
+local renderer = {
+    ditaa = function(text, attrs)
+        if attrs[1] then
+            attrs = attrs[1][2]
+        else
+            attrs = config.ditaa.defaultargs
+        end
+        params = {"-jar", LIBDIR .. "/ditaa.jar"}
+        for w in attrs:gmatch("%S+") do
+            table.insert(params, w)
+        end
+        table.insert(params, "-")
+        table.insert(params, "-")
+        return pandoc.pipe("java", params, text)
+    end,
+    plantuml = function(text, attrs)
+        return pandoc.pipe("java", {"-jar", LIBDIR .. "/plantuml.jar", "-tpng", "-p", "-Sbackgroundcolor=transparent"}, text)
+    end,
+    dot = function(text, attrs)
+        return pandoc.pipe("dot", {"-Tpng"}, text)
+    end,
+}
+
+function CodeBlock(elem, attr)
     for format, render_fun in pairs(renderer) do
         if elem.classes[1] == format then
             local filetype = "png"
@@ -26,7 +54,7 @@ function CodeBlock(elem)
                 f:close()
             else
                 io.stderr:write("rendering " .. format .. " to " .. fname .. "\n")
-                data = render_fun(elem.text)
+                data = render_fun(elem.text, elem.attributes or {})
                 local f=io.open(fname, "wb")
                 f:write(data)
                 f:close()
