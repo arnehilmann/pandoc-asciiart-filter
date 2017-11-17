@@ -21,7 +21,7 @@ local renderer = {
         if attrs[1] then
             attrs = attrs[1][2]
         else
-            attrs = config.ditaa.defaultargs
+            attrs = config.ditaa.defaultargs or ""
         end
         params = {"-jar", LIBDIR .. "/ditaa.jar"}
         for w in attrs:gmatch("%S+") do
@@ -32,12 +32,36 @@ local renderer = {
         return pandoc.pipe("java", params, text)
     end,
     plantuml = function(text, attrs)
-        return pandoc.pipe("java", {"-jar", LIBDIR .. "/plantuml.jar", "-tpng", "-p", "-Sbackgroundcolor=transparent"}, text)
+        if attrs[1] then
+            attrs = attrs[1][2]
+        else
+            attrs = config.ditaa.defaultargs or ""
+        end
+        params = {"-jar", LIBDIR .. "/plantuml.jar", "-tpng", "-p", "-Sbackgroundcolor=transparent"}
+        for w in attrs:gmatch("%S+") do
+            table.insert(params, w)
+        end
+        return pandoc.pipe("java", params, text)
     end,
     dot = function(text, attrs)
         return pandoc.pipe("dot", {"-Tpng"}, text)
     end,
 }
+
+local images = {}
+
+function Pandoc(blocks)
+    local pfile = io.popen('ls -a rendered/*.png')
+    for filename in pfile:lines() do
+        if not images[filename] then
+            io.stderr:write("removing obsolete '" .. filename .. "'\n")
+            os.remove(filename)
+        end
+    end
+    pfile:close()
+
+    return nil
+end
 
 function CodeBlock(elem, attr)
     for format, render_fun in pairs(renderer) do
@@ -49,18 +73,21 @@ function CodeBlock(elem, attr)
 
             local f=io.open(fname,"rb")
             if f~=nil then
-                io.stderr:write("cached " .. format .. " rendering found in " .. fname .. "\n")
+                io.stderr:write("cached " .. format .. " rendering found: '" .. fname .. "'\n")
                 data = f:read("*all")
                 f:close()
             else
-                io.stderr:write("rendering " .. format .. " to " .. fname .. "\n")
+                io.stderr:write("rendering " .. format .. ": '" .. fname .. "'\n")
                 data = render_fun(elem.text, elem.attributes or {})
                 local f=io.open(fname, "wb")
                 f:write(data)
                 f:close()
             end
+            images[fname] = true
             pandoc.mediabag.insert(fname, mimetype, data)
             return pandoc.Para{ pandoc.Image({pandoc.Str("rendered")}, fname) }
         end
     end
 end
+
+return {{CodeBlock = CodeBlock}, {Pandoc=Pandoc}}
