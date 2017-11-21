@@ -29,7 +29,11 @@ local renderer = {
         end
         table.insert(params, "-")
         table.insert(params, "-")
-        return pandoc.pipe("java", params, text)
+        -- local param_s=table.concat(params, " ")
+        -- io.stderr:write("param str: " .. param_s .. "\n")
+        -- io.stderr:write("param sha1: " .. pandoc.sha1(param_s) .. "\n")
+        -- return pandoc.pipe("java", params, text)
+        return {"java", params, text}
     end,
     plantuml = function(text, attrs)
         if attrs[1] then
@@ -41,7 +45,7 @@ local renderer = {
         for w in attrs:gmatch("%S+") do
             table.insert(params, w)
         end
-        return pandoc.pipe("java", params, text)
+        return {"java", params, text}
     end,
     dot = function(text, attrs)
         if attrs[1] then
@@ -53,7 +57,7 @@ local renderer = {
         for w in attrs:gmatch("%S+") do
             table.insert(params, w)
         end
-        return pandoc.pipe("dot", params, text)
+        return {"dot", params, text}
     end,
     qr = function(text, attrs)
         if attrs[1] then
@@ -65,7 +69,7 @@ local renderer = {
         for w in attrs:gmatch("%S+") do
             table.insert(params, w)
         end
-        return pandoc.pipe("qrencode", params, text)
+        return {"qrencode", params, text}
     end,
 }
 
@@ -86,11 +90,12 @@ end
 
 
 function CodeBlock(elem, attr)
-    for format, render_fun in pairs(renderer) do
+    for format, render_cmd in pairs(renderer) do
         if elem.classes[1] == format then
             local filetype = "png"
             local mimetype = "image/png"
-            local fname = "rendered/" .. format .. "-" .. pandoc.sha1(elem.text) .. "." .. filetype
+            local cmd=render_cmd(elem.text, elem.attributes or {})
+            local fname = "rendered/" .. format .. "-" .. pandoc.sha1(cmd[1] .. table.concat(cmd[2], " ") .. cmd[3]) .. "." .. filetype
             local data = nil
 
             local f=io.open(fname,"rb")
@@ -100,7 +105,7 @@ function CodeBlock(elem, attr)
                 f:close()
             else
                 io.stderr:write("rendering " .. format .. ": '" .. fname .. "'\n")
-                data = render_fun(elem.text, elem.attributes or {})
+                data = pandoc.pipe(cmd[1], cmd[2], cmd[3])
                 local f=io.open(fname, "wb")
                 f:write(data)
                 f:close()
