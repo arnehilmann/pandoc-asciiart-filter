@@ -17,7 +17,7 @@ end
 LIBDIR=os.getenv("ASCIIART_LIBDIR") or "lib"
 
 local renderer = {
-    ditaa = function(text, attrs)
+    render_ditaa = function(text, attrs)
         if attrs[1] then
             attrs = attrs[1][2]
         else
@@ -35,7 +35,7 @@ local renderer = {
         -- return pandoc.pipe("java", params, text)
         return {"java", params, text}
     end,
-    plantuml = function(text, attrs)
+    render_plantuml = function(text, attrs)
         if attrs[1] then
             attrs = attrs[1][2]
         else
@@ -47,7 +47,7 @@ local renderer = {
         end
         return {"java", params, text}
     end,
-    dot = function(text, attrs)
+    render_dot = function(text, attrs)
         if attrs[1] then
             attrs = attrs[1][2]
         else
@@ -59,7 +59,7 @@ local renderer = {
         end
         return {"dot", params, text}
     end,
-    qr = function(text, attrs)
+    render_qr = function(text, attrs)
         if attrs[1] then
             attrs = attrs[1][2]
         else
@@ -76,7 +76,7 @@ local renderer = {
 images = {}
 
 function Pandoc(blocks)
-    local pfile = io.popen('ls -a rendered/*.png')
+    local pfile = io.popen('ls -a rendered/*.png 2> /dev/null')
     for fname in pfile:lines() do
         if not images[fname] then
             io.stderr:write("removing obsolete '" .. fname .. "'\n")
